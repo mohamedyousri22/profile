@@ -1,9 +1,11 @@
 import User from "../models/User.js";
 import { Router } from "express";
 const router = Router();
+import cors from "cors";
 import pkg from "bcryptjs";
 const { hash, compare } = pkg;
 
+router.use(cors());
 //signup
 router.post("/signup", (req, res) => {
   let { name, email, password, age } = req.body;
