@@ -1,15 +1,17 @@
+import User from "../models/User.js";
 import { Router } from "express";
 const router = Router();
-import User from "../models/User.js";
 import pkg from "bcryptjs";
 const { hash, compare } = pkg;
+
 //signup
 router.post("/signup", (req, res) => {
   let { name, email, password, age } = req.body;
   name = name.trim();
   email = email.trim();
   password = password.trim();
-  age = age.trim();
+  age = String(age).trim();
+
   if (name == "" || email == "" || password == "" || age == "") {
     res.json({
       status: "failed",
@@ -31,17 +33,16 @@ router.post("/signup", (req, res) => {
       message: "Password is too short",
     });
   } else {
-    find({ email })
+    // Use User.find or User.findOne as appropriate
+    User.findOne({ email })
       .then((result) => {
-        if (result.length) {
-          //a user is already exist
+        if (result) {
           res.json({
             status: "failed",
             message: "User with the provided email already exists",
           });
         } else {
-          //try to create user
-          //password handling
+          // Continue with user creation
           const saltRounds = 10;
           hash(password, saltRounds)
             .then((hashedpassword) => {
@@ -56,7 +57,7 @@ router.post("/signup", (req, res) => {
                 .then((result) => {
                   res.json({
                     status: "success",
-                    message: "signup successful",
+                    message: "Signup successful",
                     data: result,
                   });
                 })
@@ -86,7 +87,6 @@ router.post("/signup", (req, res) => {
 });
 
 //signin
-
 router.post("/signin", (req, res) => {
   let { email, password } = req.body;
   email = email.trim();
@@ -94,37 +94,49 @@ router.post("/signin", (req, res) => {
   if (email == "" || password == "") {
     res.json({
       status: "failed",
-      message: "not found email or password",
+      message: "Email and password are required",
     });
   } else {
-    // البحث عن المستخدم باستخدام البريد الإلكتروني
-    find({ email }).then((data) => {
-      if (data.length) {
-        // مقارنة كلمة المرور المدخلة بالكلمة المخزنة
-        const hashedpassword = data[0].password;
-        compare(password, hashedpassword)
-          .then((result) => {
-            if (result) {
-              res.json({
-                status: "success",
-                message: "signin successful",
-                data: data,
-              });
-            } else {
+    // Use User.findOne to find a single user
+    User.findOne({ email })
+      .then((user) => {
+        if (user) {
+          const hashedpassword = user.password;
+          compare(password, hashedpassword)
+            .then((result) => {
+              if (result) {
+                res.json({
+                  status: "success",
+                  message: "Signin successful",
+                  data: user,
+                });
+              } else {
+                res.json({
+                  status: "failed",
+                  message: "Invalid credentials entered",
+                });
+              }
+            })
+            .catch((err) => {
               res.json({
                 status: "failed",
-                message: "Invalid credentials entered",
+                message: "An error occurred",
               });
-            }
-          })
-          .catch((err) => {
-            res.json({
-              status: "failed",
-              message: "An error occurred ",
             });
+        } else {
+          res.json({
+            status: "failed",
+            message: "User not found",
           });
-      }
-    });
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        res.json({
+          status: "failed",
+          message: "An error occurred",
+        });
+      });
   }
 });
 
